@@ -1,31 +1,35 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
+	"time"
+
+	"github.com/gofiber/fiber/v2"
 )
 
-type message struct {
-	Body string
-}
-
-func HelloWorld(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(message{
-		Body: "Hello World!",
+func HelloWorld(c *fiber.Ctx) error {
+	return c.Status(200).JSON(fiber.Map{
+		"message": "Hello World! Azure Functions!",
+		"time":    time.Now(),
 	})
 }
 
 func main() {
-	http.HandleFunc("/api/hello-world", HelloWorld)
+	app := fiber.New()
+
+	api := app.Group("/api")
+	api.Get("/hello-world", HelloWorld)
 
 	FunctionPort, exists := os.LookupEnv("FUNCTIONS_HTTPWORKER_PORT")
 	if exists {
 		fmt.Println("FUNCTIONS_HTTPWORKER_PORT: " + FunctionPort)
 	}
-	log.Println("Azure Function Running Server...!")
-	log.Fatal(http.ListenAndServe(":"+FunctionPort, nil))
+
+	log.Println("Azure Functions Server Running...!")
+	if err := app.Listen(":" + FunctionPort); err != nil {
+		log.Fatalln("Failed to Fiber Listen Server")
+	}
+
 }
